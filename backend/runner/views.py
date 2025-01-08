@@ -1,20 +1,23 @@
-from rest_framework import viewsets, permissions
 from .models import Submission, Test, TestResult
 from api.models import Exercise
+from rest_framework import viewsets, permissions, status
+from rest_framework.response import Response
+from rest_framework.views import APIView
 from runner.serializers import (
     RawTestsSerializer,
     SubmissionSerializer,
     TestResultSerializer,
     TestSerializer,
 )
-from django.http import JsonResponse
-from rest_framework.exceptions import ValidationError, ParseError
+from api.util.views import RoleBasedViewSet
 from django.contrib.auth.models import User
-from rest_framework_api_key.permissions import HasAPIKey
+from django.http import JsonResponse
 from django.utils import timezone
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError, ParseError
+import base64
 import json
-from api.util.views import RoleBasedViewSet
+import rest_framework
 
 
 class SubmissionViewSet(RoleBasedViewSet):
@@ -144,7 +147,6 @@ class SubmissionFileViewSet(viewsets.ViewSet):
                         )
                     else:
                         return error_response
-
             except FileNotFoundError:
                 return error_response
 
@@ -313,3 +315,50 @@ class TestResultViewSet(viewsets.ModelViewSet):
             )
         else:
             return super().get_queryset()
+
+
+class Judge0CallbackView(APIView):
+    """
+    Handles Judge0's callback on submission completion.
+    Processes the execution results and updates the corresponding TestResult.
+    """
+
+    # PUT
+    def put(self, request, *args, **kwargs):
+        token = request.data.get("token")
+        if not token:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            test_result = TestResult.objects.select_related("exercise_test").get(
+                token=token
+            )
+        except TestResult.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        test = test_result.exercise_test
+        output_data = request.data
+
+        # Decode and concatenate all output streams
+        stdout = ""
+        for key in ["message", "stdout", "stderr", "compile_output"]:
+            if output_data.get(key):
+                stdout += base64.b64decode(output_data[key]).decode("utf-8")
+
+        # Determine execution status
+        status_value = "error"
+        if output_data.get("stdout"):
+            decoded_stdout = base64.b64decode(output_data["stdout"]).decode("utf-8")
+            if not test.stdout or decoded_stdout.rstrip("\n") == test.stdout:
+                status_value = "success"
+            else:
+                status_value = "failed"
+
+        # Update test result
+        test_result.stdout = stdout
+        test_result.status = status_value
+        test_result.time = output_data.get("time") or 0
+        test_result.memory = output_data.get("memory") or 0
+        test_result.save()
+
+        return Response(status=status.HTTP_200_OK)

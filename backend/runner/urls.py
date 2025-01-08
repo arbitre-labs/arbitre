@@ -20,4 +20,11 @@ router.register(
     basename="requeue-submissions",
 )
 
-urlpatterns = [re_path("api/", include(router.urls))]
+urlpatterns = [
+    re_path("api/", include(router.urls)),
+    re_path(
+        "api/judge0-callback",
+        views.Judge0CallbackView.as_view(),
+        name="judge0-callback",
+    ),
+]
