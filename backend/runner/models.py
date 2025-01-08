@@ -13,6 +13,7 @@ from typing_extensions import Optional
 import environ
 import os
 import random
+import uuid
 
 
 class Submission(models.Model):
@@ -266,6 +267,9 @@ class TestResult(models.Model):
         ERROR = "error", _("Error")
 
     submission = models.ForeignKey(Submission, on_delete=models.CASCADE)
+    token = models.TextField(
+        unique=True, default=uuid.uuid4, editable=True
+    )  # Judge0 token, used for callback. Populated with a random uuid just for initialization.
     exercise_test = models.ForeignKey(Test, on_delete=models.CASCADE)
     stdout = models.TextField(default="")
     time = models.FloatField(default=-1)
