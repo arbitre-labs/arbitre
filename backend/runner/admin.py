@@ -24,7 +24,16 @@ class TestInline(admin.StackedInline):
 
 
 class ExerciseAdmin(admin.ModelAdmin):
-    fields = ["session", "title", "description", "prefix", "suffix", "type", "grade", "teacher_files"]
+    fields = [
+        "session",
+        "title",
+        "description",
+        "prefix",
+        "suffix",
+        "type",
+        "grade",
+        "teacher_files",
+    ]
     list_display = ["title", "session", "type", "grade"]
     list_filter = ["session", "type"]
     inlines = [TestInline]
@@ -68,8 +77,8 @@ class CourseAdmin(admin.ModelAdmin):
 
 
 class TestResultAdmin(admin.ModelAdmin):
-    fields = ["status", "id", "submission", "exercise_test", "stdout"]
-    readonly_fields = ["id", "submission", "exercise_test", "stdout"]
+    fields = ["status", "id", "submission", "exercise_test", "stdout", "token"]
+    readonly_fields = ["id", "submission", "exercise_test", "stdout", "token"]
     list_display = ["id", "submission", "status", "exercise_test", "stdout"]
     list_filter = ["status"]
 
