@@ -295,6 +295,7 @@ class TestResult(models.Model):
 
     def save(self, *args, **kwargs):
         super(TestResult, self).save(*args, **kwargs)
+        self.submission.refresh_status()
 
         # Get group to send to
         channel_layer = get_channel_layer()
