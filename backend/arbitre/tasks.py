@@ -72,6 +72,11 @@ def get_base_runner_url():
     return get_base_url() + "/runner/api"
 
 
+def get_callback_url():
+    # return f"{get_base_runner_url()}/judge0-callback"
+    return "http://host.docker.internal:8000/runner/api/judge0-callback"
+
+
 def get_api_key():
     api_key = env("API_KEY", default="")
     if api_key == "":
@@ -97,15 +102,16 @@ def get_test(base_url, test_id):
     return json.loads(tests.content)
 
 
-def post_running_testresult(submission_id, test_id, testresult_post_url):
-    testresult_before_data = {
+def post_testresult_with_token(submission_id, test_id, token, testresult_post_url):
+    data = {
         "submission_pk": submission_id,
         "exercise_test_pk": test_id,
-        "status": "running",
+        "status": "pending",
+        "token": token,
     }
     requests.post(
         testresult_post_url,
-        data=testresult_before_data,
+        data=data,
         headers={"Authorization": f"Api-Key {get_api_key()}"},
     )
 
@@ -115,10 +121,13 @@ def send_test_to_judge0(judge0_url, source_code, additional_files, language_id, 
         "language_id": language_id,
         "source_code": source_code,
         "stdin": stdin,
+        "callback_url": get_callback_url(),
     }
 
     if additional_files:
         request["additional_files"] = additional_files
+
+    print("Sending to judge0 with callback_url:", get_callback_url())
 
     response_object = requests.post(judge0_url, json=request)
     return json.loads(response_object.text)
@@ -141,7 +150,7 @@ def post_error_testresult(message, submission_id, test_id, testresult_post_url):
 
 
 def zip_directory(path, zip_file_handle):
-    for root, _dirs, files in os.walk(path):
+    for root, _, files in os.walk(path):
         for file in files:
             zip_file_handle.write(
                 os.path.join(root, file), os.path.basename(os.path.join(root, file))
@@ -244,10 +253,7 @@ def run_test(
         # Get test data from REST API
         test = get_test(base_url, test_id)
 
-        # Save the empty test result with "running" status
-        post_running_testresult(submission_id, test_id, testresult_post_url)
-
-        judge0_url = f"http://{hostname}/submissions?wait=true"
+        judge0_url = f"http://{hostname}/submissions"
 
         if exercise_type == "single":
             language_id = get_lang_id(lang)
@@ -266,45 +272,13 @@ def run_test(
             judge0_url, source_code, additional_files, language_id, test["stdin"]
         )
 
-        print("Judge0 response:" + str(response))
-
-        if "stdout" or "stderr" in response:
-            status = ""
-            if response["stdout"]:
-                if test["stdout"] == "":  # nothing to test for
-                    status = "success"
-                if (
-                    response["stdout"] == test["stdout"]
-                    or response["stdout"] == test["stdout"] + "\n"
-                ):
-                    status = "success"
-                else:
-                    status = "failed"
-            else:
-                status = "error"
-
-            stdout = ""
-            for key in ["message", "stdout", "stderr", "compile_output"]:
-                if response[key] is not None:
-                    stdout += response[key]
-
-            time = response.get("time", 0)
-            time = time if time is not None else 0
-
-            memory = response.get("memory", 0)
-            memory = memory if memory is not None else 0
-
-            # Save results to database using REST API
-            after_data = {
-                "submission_pk": submission_id,
-                "exercise_test_pk": test_id,
-                "stdout": stdout,
-                "status": status,
-                "time": time,
-                "memory": memory,
-            }
-        else:
+        if "token" not in response:
             raise requests.exceptions.ConnectionError
+
+        token = response["token"]
+        post_testresult_with_token(submission_id, test_id, token, testresult_post_url)
+
+        return
     except requests.exceptions.ConnectionError:
         post_error_testresult(
             "No response from runner. Please contact the administrator.",
@@ -324,13 +298,6 @@ def run_test(
             testresult_post_url,
         )
         return
-
-    print("data to send:" + str(after_data))
-    finalpost = requests.post(
-        testresult_post_url,
-        data=after_data,
-        headers={"Authorization": f"Api-Key {get_api_key()}"},
-    )
 
 
 @shared_task(ignore_result=True)
