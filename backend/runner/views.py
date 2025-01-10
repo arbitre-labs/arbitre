@@ -10,6 +10,7 @@ from runner.serializers import (
     TestSerializer,
 )
 from api.util.views import RoleBasedViewSet
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.http import JsonResponse
 from django.utils import timezone
@@ -17,7 +18,6 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError, ParseError
 import base64
 import json
-import rest_framework
 
 
 class SubmissionViewSet(RoleBasedViewSet):
@@ -325,6 +325,13 @@ class Judge0CallbackView(APIView):
 
     # PUT
     def put(self, request, *args, **kwargs):
+        # Check host
+        host = request.META.get("HTTP_HOST").split(":")[0]
+        print("Host : ", host)
+        print("Allowed hosts:", settings.ALLOWED_HOSTS)
+        if host not in settings.ALLOWED_HOSTS:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
         token = request.data.get("token")
         if not token:
             return Response(status=status.HTTP_400_BAD_REQUEST)

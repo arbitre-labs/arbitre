@@ -106,7 +106,7 @@ def post_testresult_with_token(submission_id, test_id, token, testresult_post_ur
     data = {
         "submission_pk": submission_id,
         "exercise_test_pk": test_id,
-        "status": "pending",
+        "status": "running",
         "token": token,
     }
     requests.post(
