@@ -50,6 +50,7 @@ class Submission(models.Model):
 
         return os.path.join(path, format)
 
+    id: int
     exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE)
     file = models.FileField(upload_to=get_file_name)
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -240,6 +241,7 @@ class Submission(models.Model):
 
 
 class Test(models.Model):
+    id: int
     exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE)
     name = models.CharField(max_length=255, default="")
     stdin = models.TextField(default="", blank=True)
@@ -266,6 +268,7 @@ class TestResult(models.Model):
         FAILED = "failed", _("Failed")
         ERROR = "error", _("Error")
 
+    id: int
     submission = models.ForeignKey(Submission, on_delete=models.CASCADE)
     token = models.TextField(
         unique=True, default=uuid.uuid4, editable=True
