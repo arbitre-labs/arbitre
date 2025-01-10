@@ -327,8 +327,6 @@ class Judge0CallbackView(APIView):
     def put(self, request, *args, **kwargs):
         # Check host
         host = request.META.get("HTTP_HOST").split(":")[0]
-        print("Host : ", host)
-        print("Allowed hosts:", settings.ALLOWED_HOSTS)
         if host not in settings.ALLOWED_HOSTS:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
 
