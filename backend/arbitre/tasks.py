@@ -73,10 +73,10 @@ def get_base_runner_url():
 
 
 def get_callback_url():
-    if env("DEBUG", default=False):
-        return "http://host.docker.internal:8000/runner/api/judge0-callback"
-    else:
+    if env("USE_HTTPS", default=True):
         return f"{get_base_runner_url()}/judge0-callback"
+    else:
+        return "http://host.docker.internal:8000/runner/api/judge0-callback"
 
 
 def get_api_key():
