@@ -13,6 +13,7 @@ from typing_extensions import Optional
 import environ
 import os
 import random
+import uuid
 
 
 class Submission(models.Model):
@@ -49,6 +50,7 @@ class Submission(models.Model):
 
         return os.path.join(path, format)
 
+    id: int
     exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE)
     file = models.FileField(upload_to=get_file_name)
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -239,6 +241,7 @@ class Submission(models.Model):
 
 
 class Test(models.Model):
+    id: int
     exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE)
     name = models.CharField(max_length=255, default="")
     stdin = models.TextField(default="", blank=True)
@@ -265,7 +268,11 @@ class TestResult(models.Model):
         FAILED = "failed", _("Failed")
         ERROR = "error", _("Error")
 
+    id: int
     submission = models.ForeignKey(Submission, on_delete=models.CASCADE)
+    token = models.TextField(
+        unique=True, default=uuid.uuid4, editable=True
+    )  # Judge0 token, used for callback. Populated with a random uuid just for initialization.
     exercise_test = models.ForeignKey(Test, on_delete=models.CASCADE)
     stdout = models.TextField(default="")
     time = models.FloatField(default=-1)
@@ -291,6 +298,7 @@ class TestResult(models.Model):
 
     def save(self, *args, **kwargs):
         super(TestResult, self).save(*args, **kwargs)
+        self.submission.refresh_status()
 
         # Get group to send to
         channel_layer = get_channel_layer()

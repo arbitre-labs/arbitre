@@ -49,6 +49,7 @@ class Course(models.Model):
         TYPESCRIPT = "typescript", _("TypeScript")
         VBNET = "vbnet", _("VB.NET")
 
+    id: int
     title = models.CharField(max_length=255, blank=True)
     description = models.TextField(blank=True)
     language = models.CharField(
@@ -176,8 +177,9 @@ class StudentGroup(models.Model):
             self.course.handle_student_groups_change()
 
     def delete(self, *args, **kwargs):
-        super(StudentGroup, self).delete(*args, **kwargs)
+        result = super(StudentGroup, self).delete(*args, **kwargs)
         self.course.handle_student_groups_change()
+        return result
 
     def __str__(self):
         return f"{self.name} ({self.course.title})"
@@ -192,6 +194,7 @@ class Session(models.Model):
         SOFT = "soft", _("Soft")
         HARD = "hard", _("Hard")
 
+    id: int
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     title = models.CharField(max_length=255, blank=True)
     description = models.TextField(blank=True)
@@ -232,6 +235,7 @@ class Exercise(models.Model):
         SINGLE = "single", _("Single")
         MULTIPLE = "multiple", _("Multiple")
 
+    id: int
     session = models.ForeignKey(Session, on_delete=models.CASCADE)
     type = models.CharField(
         max_length=8,

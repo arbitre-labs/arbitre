@@ -69,6 +69,7 @@ class TestResultSerializer(RoleBasedSerializer):
             "time",
             "memory",
             "status",
+            "token",
         )
 
     role_fields = {
@@ -100,6 +101,9 @@ class TestResultSerializer(RoleBasedSerializer):
             },
         )
 
+        if "token" in validated_data:
+            testresult.token = validated_data["token"]
+
         testresult.status = validated_data["status"]
         if testresult.status in ["pending", "running"]:
             testresult.stdout = ""
@@ -111,9 +115,5 @@ class TestResultSerializer(RoleBasedSerializer):
             testresult.memory = validated_data.get("memory", -1)
 
         testresult.save()
-
-        # Refresh submission status
-        submission = Submission.objects.get(id=testresult.submission.id)
-        submission.refresh_status()
 
         return testresult

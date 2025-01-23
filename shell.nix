@@ -13,6 +13,7 @@ pkgs.mkShell {
       django-cors-headers
       django-environ
       django-extensions
+      django-types
       django-stubs-ext
       djangorestframework
       djangorestframework-api-key
@@ -21,10 +22,10 @@ pkgs.mkShell {
       mozilla-django-oidc
       packaging
       psycopg2
+      pyjwt
       pylama
       python-keycloak
       pyyaml
-      pyjwt
       redis
       requests
     ]))
